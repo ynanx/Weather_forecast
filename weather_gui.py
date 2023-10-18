@@ -16,15 +16,16 @@ import numpy as np
 from get_weatherinfo import HtmlParser, Write_to_csv
 
 
-global picture, time_select, photo_select, info_select,\
-       weather_1day,weather_list,frame
-time_select = ("24h","7天","8-15天")
+#global picture, time_select, photo_select, info_select,\
+#       weather_1day,weather_list,frame
+time_select = ("24h","7天","15天")
 info_select = "24h"
 photo_select = "过去24小时温度变化曲线图"
 photo_select_list = ("过去24小时温度变化曲线图", "过去24小时相对湿度变化曲线图", 
                      "过去24小时空气质量柱状图", "过去24小时风向雷达图", 
-                     "未来7天高温低温变换曲线图",
-                     "未来15天高温低温变换曲线图", "未来8-15天风向雷达图",
+                     "未来7天高温低温变换曲线图","未来7天风向雷达图",
+                     "未来7天气候分布饼状图",
+                     "未来15天高温低温变换曲线图", "未来15天风向雷达图",
                      "未来15天气候分布饼状图")
 html_parser = HtmlParser()
 
@@ -60,8 +61,6 @@ class App(tk.Frame):
 class Outputer(object):
     def __init__(self):     
         self.search_key = None
-        self.info_1day = None
-        self.info_15day = None
         self.time_list = None
         self.photo_list =None
         self.weather_1day = None
@@ -81,18 +80,22 @@ class Outputer(object):
         self.screen.title("天气预报系统")
         self.screen.geometry('1000x600')
 
+
         if 'combostyle' not in ttk.Style().theme_names():
                     combostyle = tk.ttk.Style()
                     combostyle.theme_create('combostyle', parent='alt', settings={
                                             'TCombobox':{'configure':{
-                                                         'selectbackground': 'white',
+                                                         'selectbackground': 'green',
                                                          'background':'green',
                                                          'selectforeground':'black',
-                                                         'selectborderwidth': 0}}})
-                    combostyle.theme_use('combostyle') 
+                                                         'selectborderwidth': 0
+                                                             }}})
+
         else:
             combostyle = tk.ttk.Style()
-            combostyle.theme_use('combostyle')            
+        combostyle.theme_use('combostyle')  
+
+     
 
 
         #Set the Chinese display in matplotlib
@@ -105,124 +108,6 @@ class Outputer(object):
         self.screen.geometry("1000x600+0+0")
         self.screen_model()
         self.screen.mainloop()
-
-    #Temperature curves were drawn for 8-15 days   
-    def tem_curve_7(self, info_7day_1):
-        tem_low = []
-        tem_high = []
-        data = info_7day_1 
-        
-        #Save data
-        for i in range(7):
-            if data[i][2] != None:
-                tem_low.append(int(float(data[i][2])))
-            else:
-                tem_low.append(data[i][2])
-            if data[i][3] != None:
-                tem_high.append(int(float(data[i][3])))
-            else:
-                tem_high.append(data[i][3])
-                
-        tem_high_sum = 0
-        tem_low_sum = 0
-        low_sum = 7
-        high_sum = 7
-        for i in range(7):
-            if tem_high[i] != None:
-                tem_high_sum += tem_high[i]
-            else:
-                high_sum -= 1
-            if tem_low[i] !=None:
-                tem_low_sum += tem_low[i]
-            else:
-                low_sum -= 1
-        tem_high_ave = tem_high_sum / high_sum #average temperature
-        tem_low_ave = tem_low_sum / low_sum
-        
-        while tem_high.count(None):
-            tem_high[tem_high.index(None)] = tem_high_ave
-        while tem_low.count(None):
-            tem_low[tem_low.index(None)] = tem_low_ave
-        tem_max = max(tem_high)
-        tem_max_date = tem_high.index(tem_max)
-        tem_min = min(tem_low)
-        tem_min_date = tem_low.index(tem_min)
-        #global picture_a
-        x = range(1, 8)
-        plt.clf()
-        plt.plot(x, tem_high, color='red', label='高温')
-        plt.scatter(x, tem_high, color='red')
-        plt.plot(x, tem_low, color='blue', label='低温')
-        plt.scatter(x, tem_low, color='blue')
-        plt.plot([1,8],[tem_high_ave, tem_high_ave], c='black', linestyle = '--')
-        plt.plot([1,8],[tem_low_ave, tem_low_ave], c='black', linestyle = '--')
-        plt.legend() 
-        plt.text(tem_max_date + 0.15, tem_max +0.15, str(tem_max), ha='center', va='top', fontsize=10.5)
-        plt.text(tem_min_date + 0.15, tem_min +0.15, str(tem_min), ha='center', va='top', fontsize=10.5)
-        plt.text(1, round(tem_high_ave, 2), str(round(tem_high_ave, 2)), ha='center', va='top', fontsize=10.5)
-        plt.text(1, round(tem_low_ave, 2), str(round(tem_low_ave, 2)), ha='center', va='top', fontsize=10.5)
-        plt.xticks(x)
-        plt.title('未来7天高温低温变化曲线图')
-        self.canvas.draw()
-        
-        
-    def tem_curve_15(self, info_15day_1,info_7day_1):
-        tem_low = []
-        tem_high = []
-        data = info_7day_1 + info_15day_1
-        
-        #Save data
-        for i in range(15):
-            if data[i][2] != None:
-                tem_low.append(int(float(data[i][2])))
-            else:
-                tem_low.append(data[i][2])
-            if data[i][3] != None:
-                tem_high.append(int(float(data[i][3])))
-            else:
-                tem_high.append(data[i][3])
-                
-        tem_high_sum = 0
-        tem_low_sum = 0
-        low_sum = 15
-        high_sum = 15
-        for i in range(15):
-            if tem_high[i] != None:
-                tem_high_sum += tem_high[i]
-            else:
-                high_sum -= 1
-            if tem_low[i] !=None:
-                tem_low_sum += tem_low[i]
-            else:
-                low_sum -= 1
-        tem_high_ave = tem_high_sum / high_sum #average temperature
-        tem_low_ave = tem_low_sum / low_sum
-        
-        while tem_high.count(None):
-            tem_high[tem_high.index(None)] = tem_high_ave
-        while tem_low.count(None):
-            tem_low[tem_low.index(None)] = tem_low_ave
-        tem_max = max(tem_high)
-        tem_max_date = tem_high.index(tem_max)
-        tem_min = min(tem_low)
-        tem_min_date = tem_low.index(tem_min)
-        #global picture_a
-        x = range(1, 16)
-        plt.clf()
-        plt.plot(x, tem_high, color='red', label='高温')
-        plt.scatter(x, tem_high, color='red')
-        plt.plot(x, tem_low, color='blue', label='低温')
-        plt.scatter(x, tem_low, color='blue')
-        plt.plot([1,16],[tem_high_ave, tem_high_ave], c='black', linestyle = '--')
-        plt.plot([1,16],[tem_low_ave, tem_low_ave], c='black', linestyle = '--')
-        plt.legend() 
-        plt.text(tem_max_date + 0.15, tem_max +0.15, str(tem_max), ha='center', va='top', fontsize=10.5)
-        plt.text(tem_min_date + 0.15, tem_min +0.15, str(tem_min), ha='center', va='top', fontsize=10.5)
-        plt.text(1, round(tem_high_ave, 2), str(round(tem_high_ave, 2)), ha='center', va='top', fontsize=10.5)
-        plt.text(1, round(tem_low_ave, 2), str(round(tem_low_ave, 2)), ha='center', va='top', fontsize=10.5)
-        plt.xticks(x)
-        plt.title('未来15天高温低温变化曲线图')
-        self.canvas.draw()
     
     #Temperature curves are drawn for 24 hours
     def tem_curve_24(self,info_1day_1):
@@ -236,7 +121,6 @@ class Outputer(object):
                 tem.append(int(float(data[i][1])))
             else:
                 tem.append(data[i][1])
-        print(hour)
         tem_sum = 0
         t_sum=25
         for i in range(25):
@@ -291,7 +175,6 @@ class Outputer(object):
         air_min = min(air)
         air_max_hour = air.index(air_max)
         air_min_hour = air.index(air_min)
-        global picture_a, picture
         plt.clf()
         x=range(1, 26)
         for i in range(0, 25):
@@ -364,6 +247,7 @@ class Outputer(object):
 
     #Plot the relative humidity over 24 hours
     def hum_curve_24(self,info_1day_1):
+        
         hour = []
         hum = []
         data = info_1day_1
@@ -399,10 +283,128 @@ class Outputer(object):
         plt.xticks(x, hour)
         plt.title("过去24小时相对湿度变化曲线图")
         self.canvas.draw()
+    
+    #Temperature curves were drawn for 7 days   
+    def tem_curve_7(self, info_15day_1):
+        tem_low = []
+        tem_high = []
+        data = info_15day_1 
+        
+        #Save data
+        for i in range(7):
+            if data[i][2] != None:
+                tem_low.append(int(float(data[i][2])))
+            else:
+                tem_low.append(data[i][2])
+            if data[i][3] != None:
+                tem_high.append(int(float(data[i][3])))
+            else:
+                tem_high.append(data[i][3])
+                
+        tem_high_sum = 0
+        tem_low_sum = 0
+        low_sum = 7
+        high_sum = 7
+        for i in range(7):
+            if tem_high[i] != None:
+                tem_high_sum += tem_high[i]
+            else:
+                high_sum -= 1
+            if tem_low[i] !=None:
+                tem_low_sum += tem_low[i]
+            else:
+                low_sum -= 1
+        tem_high_ave = tem_high_sum / high_sum #average temperature
+        tem_low_ave = tem_low_sum / low_sum
+        
+        while tem_high.count(None):
+            tem_high[tem_high.index(None)] = tem_high_ave
+        while tem_low.count(None):
+            tem_low[tem_low.index(None)] = tem_low_ave
+        tem_max = max(tem_high)
+        tem_max_date = tem_high.index(tem_max)
+        tem_min = min(tem_low)
+        tem_min_date = tem_low.index(tem_min)
+        #global picture_a
+        x = range(1, 8)
+        plt.clf()
+        plt.plot(x, tem_high, color='red', label='高温')
+        plt.scatter(x, tem_high, color='red')
+        plt.plot(x, tem_low, color='blue', label='低温')
+        plt.scatter(x, tem_low, color='blue')
+        plt.plot([1,8],[tem_high_ave, tem_high_ave], c='black', linestyle = '--')
+        plt.plot([1,8],[tem_low_ave, tem_low_ave], c='black', linestyle = '--')
+        plt.legend() 
+        plt.text(tem_max_date + 0.15, tem_max +0.15, str(tem_max), ha='center', va='top', fontsize=10.5)
+        plt.text(tem_min_date + 0.15, tem_min +0.15, str(tem_min), ha='center', va='top', fontsize=10.5)
+        plt.text(1, round(tem_high_ave, 2), str(round(tem_high_ave, 2)), ha='center', va='top', fontsize=10.5)
+        plt.text(1, round(tem_low_ave, 2), str(round(tem_low_ave, 2)), ha='center', va='top', fontsize=10.5)
+        plt.xticks(x)
+        plt.title('未来7天高温低温变化曲线图')
+        self.canvas.draw()
+        
+    #Temperature curves were drawn for 15 days 
+    def tem_curve_15(self, info_15day_1):
+        tem_low = []
+        tem_high = []
+        data = info_15day_1
+        
+        #Save data
+        for i in range(15):
+            if data[i][2] != None:
+                tem_low.append(int(float(data[i][2])))
+            else:
+                tem_low.append(data[i][2])
+            if data[i][3] != None:
+                tem_high.append(int(float(data[i][3])))
+            else:
+                tem_high.append(data[i][3])
+                
+        tem_high_sum = 0
+        tem_low_sum = 0
+        low_sum = 15
+        high_sum = 15
+        for i in range(15):
+            if tem_high[i] != None:
+                tem_high_sum += tem_high[i]
+            else:
+                high_sum -= 1
+            if tem_low[i] !=None:
+                tem_low_sum += tem_low[i]
+            else:
+                low_sum -= 1
+        tem_high_ave = tem_high_sum / high_sum #average temperature
+        tem_low_ave = tem_low_sum / low_sum
+        
+        while tem_high.count(None):
+            tem_high[tem_high.index(None)] = tem_high_ave
+        while tem_low.count(None):
+            tem_low[tem_low.index(None)] = tem_low_ave
+        tem_max = max(tem_high)
+        tem_max_date = tem_high.index(tem_max)
+        tem_min = min(tem_low)
+        tem_min_date = tem_low.index(tem_min)
+        #global picture_a
+        x = range(1, 16)
+        plt.clf()
+        plt.plot(x, tem_high, color='red', label='高温')
+        plt.scatter(x, tem_high, color='red')
+        plt.plot(x, tem_low, color='blue', label='低温')
+        plt.scatter(x, tem_low, color='blue')
+        plt.plot([1,16],[tem_high_ave, tem_high_ave], c='black', linestyle = '--')
+        plt.plot([1,16],[tem_low_ave, tem_low_ave], c='black', linestyle = '--')
+        plt.legend() 
+        plt.text(tem_max_date + 0.15, tem_max +0.15, str(tem_max), ha='center', va='top', fontsize=10.5)
+        plt.text(tem_min_date + 0.15, tem_min +0.15, str(tem_min), ha='center', va='top', fontsize=10.5)
+        plt.text(1, round(tem_high_ave, 2), str(round(tem_high_ave, 2)), ha='center', va='top', fontsize=10.5)
+        plt.text(1, round(tem_low_ave, 2), str(round(tem_low_ave, 2)), ha='center', va='top', fontsize=10.5)
+        plt.xticks(x)
+        plt.title('未来15天高温低温变化曲线图')
+        self.canvas.draw()        
    
     #Change of the wind direction
-    def change_wind(self,wind):
-        for i in range(0, 15):
+    def change_wind_7(self,wind):
+        for i in range(0, 7):
             if wind[i] == '北风':
                 wind[i] = 90
             elif wind[i] == '南风':
@@ -419,24 +421,49 @@ class Outputer(object):
                 wind[i] =225
             elif wind[i] == '东南风':
                 wind[i] =315
+            else:
+                pass
+        return wind
+    
+    #Change of the wind direction
+    def change_wind(self, wind, day):
+        for i in range(0, day):
+            if wind[i] == '北风':
+                wind[i] = 90
+            elif wind[i] == '南风':
+                wind[i] =270
+            elif wind[i] == '西风':
+                wind[i] =180
+            elif wind[i] == '东风':
+                wind[i] =360
+            elif wind[i] == '东北风':
+                wind[i] =45
+            elif wind[i] == '西北风':
+                wind[i] =135
+            elif wind[i] == '西南风':
+                wind[i] =225
+            elif wind[i] == '东南风':
+                wind[i] =315
+            else:
+                pass  
         return wind
 
-    #15 day wind radar chart
-    def wind_radar_15(self,info_15day_1):
+    #7 days wind radar chart
+    def wind_radar_7(self,info_15day_1):
         wind1 = []
         wind2 = []
         wind_speed = []
-        for i in range(15):
+        for i in range(7):
             wind1.append(info_15day_1[i][4])
             wind2.append(info_15day_1[i][5])
             wind_speed.append(int(info_15day_1[i][6]))
-        wind1 = self.change_wind(wind1)
-        wind2 = self.change_wind(wind2)
+        wind1 = self.change_wind(wind1, 7)
+        wind2 = self.change_wind(wind2, 7)
         degs = np.arange(45, 361, 45)
         temp = []
         for deg in degs:
             speed = []
-            for i in range(0,8):
+            for i in range(0,7):
                 if wind1[i] == deg:
                     speed.append(wind_speed[i])
                 if wind2[i] == deg:
@@ -453,30 +480,85 @@ class Outputer(object):
         
         colors = [(1- x /max(temp), 1- x /max(temp), 0.6) for x in radii]
         plt.bar(theta, radii, width=(2 * np.pi / N), bottom=0.0, color=colors)
-        plt.title("未来8-15天风向雷达图", x=1, y=1, fontsize=10)
+        plt.title("未来7天风向雷达图", x=1, y=1, fontsize=10)
         self.canvas.draw()
+
+    #15 days wind radar chart
+    def wind_radar_15(self,info_15day_1):
+        wind1 = []
+        wind2 = []
+        wind_speed = []
+        for i in range(15):
+            wind1.append(info_15day_1[i][4])
+            wind2.append(info_15day_1[i][5])
+            wind_speed.append(int(info_15day_1[i][6]))
+        wind1 = self.change_wind(wind1, 15)
+        wind2 = self.change_wind(wind2, 15)
+        degs = np.arange(45, 361, 45)
+        temp = []
+        for deg in degs:
+            speed = []
+            for i in range(0,15):
+                if wind1[i] == deg:
+                    speed.append(wind_speed[i])
+                if wind2[i] == deg:
+                    speed.append(wind_speed[i])
+            if len(speed) == 0:
+                temp.append(0)
+            else:
+                temp.append(sum(speed) / len(speed))
+        N = 8
+        theta = np.arange(0 + np.pi / 8, 2 * np.pi + np.pi / 8, 2 * np.pi /8)
+        radii = np.array(temp)
+        plt.clf()
+        plt.axes(polar=True)
         
-    #15-day weather pie chart
-    def weather_pie(self, info_15day_1):
+        colors = [(1- x /max(temp), 1- x /max(temp), 0.6) for x in radii]
+        plt.bar(theta, radii, width=(2 * np.pi / N), bottom=0.0, color=colors)
+        plt.title("未来15天风向雷达图", x=1, y=1, fontsize=10)
+        self.canvas.draw()
+
+     #7 days weather pie chart
+    def weather_pie_7(self, info_15day_1):
         weather = []
-        for i in range(8):
+        for i in range(7):
             weather.append(info_15day_1[i][1])
         dic_wea = {}
-        for i in range(0, 25):
+        for i in range(0, 7):
             if weather[i] in dic_wea.keys():
                 dic_wea[weather[i]] += 1
             else:
                 dic_wea[weather[i]] = 1
         plt.clf()
-        explode = [0.01] * len(dic_wea.key())
-        color = ['lightskyblue', 'silver', 'yellow', 'salmon', 'grey', 'lime', 'gold', 'red', 'green', 'pink']
-        plt.pie(dic_wea.values(), explode=explode, labels=dic_wea.keys(), autopct='%1.1f%%', colors=color)
-        plt.title("未来8-15天气候分布图")
+        if len(dic_wea) > 0:
+            explode = [0.01] * len(dic_wea.keys())
+            color = ['lightskyblue', 'silver', 'yellow', 'salmon', 'grey', 'lime', 'gold', 'red', 'green', 'pink']
+            plt.pie(dic_wea.values(), explode=explode, labels=dic_wea.keys(), autopct='%1.1f%%', colors=color)
+            plt.title("未来7天气候分布图")
+        else:
+            plt.title("暂无数据可用")
         self.canvas.draw()
-   # def __init__(self):
-    #    self.frame = tk.Frame(self.screen, width=400, height=350)
-     #   self.weather_list = tk.Canvas(self.frame, bd=0, bg='white', width=400, height=350, scrollregion=(0, 0, 850, 1500))
-      #  self.weather_1day = tk.Canvas(self.screen, bd=2, bg='white', width=300, height=200)
+        
+    #15 days weather pie chart
+    def weather_pie_15(self, info_15day_1):
+        weather = []
+        for i in range(15):
+            weather.append(info_15day_1[i][1])
+        dic_wea = {}
+        for i in range(0, 15):
+            if weather[i] in dic_wea.keys():
+                dic_wea[weather[i]] += 1
+            else:
+                dic_wea[weather[i]] = 1
+        plt.clf()
+        if len(dic_wea) > 0:
+            explode = [0.01] * len(dic_wea.keys())
+            color = ['lightskyblue', 'silver', 'yellow', 'salmon', 'grey', 'lime', 'gold', 'red', 'green', 'pink']
+            plt.pie(dic_wea.values(), explode=explode, labels=dic_wea.keys(), autopct='%1.1f%%', colors=color)
+            plt.title("未来15天气候分布图")
+        else:
+            plt.title("暂无数据可用")
+        self.canvas.draw()
 
     #Image display interface and image toolbar
     def draw_map(self):
@@ -490,11 +572,26 @@ class Outputer(object):
         toolbar.update()
         
         self.canvas.get_tk_widget().place(x=2, y=2)
-
-    #Generate menus, buttons, selections
     
+    #Weather list display(text)
+    def draw_weather_text(self):
+        self.weather_1day = tk.Canvas(self.screen, bd=2, bg='white', width=300, height=200)
+        self.weather_1day.place(x=580, y=20)
+        self.frame = tk.Frame(self.screen, width=400, height=350)
+        self.frame.place(x=60, y=225)
+        self.weather_list = tk.Canvas(self.frame, bd=0, bg='white', width=400, height=350, scrollregion=(0, 0, 850, 1500))
+        hbar = tk.Scrollbar(self.frame, orient=tk.HORIZONTAL)
+        hbar.pack(side=tk.BOTTOM, fill=tk.X)
+        hbar.config(command=self.weather_list.xview)
+        vbar = tk.Scrollbar(self.frame, orient=tk.VERTICAL)
+        vbar.pack(side=tk.RIGHT, fill=tk.Y)
+        vbar.config(command=self.weather_list.yview)
+        self.weather_list.config(width=400, height=350)
+        self.weather_list.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
+        self.weather_list.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
+        
     #Weather list display(table)        
-    def draw_weather_list(self,search_key_1, info_1day_1, info_7day_1,info_15day_1, info_select_1):
+    def draw_weather_list(self,search_key_1, info_1day_1, info_15day_1, info_select_1):
         self.weather_list.delete(tk.ALL)
         self.weather_1day.delete(tk.ALL)
         self.weather_1day.create_text(40, 20, text=search_key_1 + ':', font=('宋体', 16), fill='red')
@@ -536,48 +633,49 @@ class Outputer(object):
             self.weather_list.create_text(680, 20, text='风向2', font=('宋体', 15))
             self.weather_list.create_text(800, 20, text='风级', font=('宋体', 15))
             for i in range(7):
-                self.weather_list.create_text(80,70 + i * 50, text=str(info_7day_1[i][0]),font=('宋体',15))
-                self.weather_list.create_text(200,70 + i * 50, text=str(info_7day_1[i][1]),font=('宋体',15))
-                self.weather_list.create_text(320,70 + i * 50, text=str(info_7day_1[i][2]),font=('宋体',15))
-                self.weather_list.create_text(440,70 + i * 50, text=str(info_7day_1[i][3]),font=('宋体',15))
-                self.weather_list.create_text(560,70 + i * 50, text=str(info_7day_1[i][4]),font=('宋体',15))
-                self.weather_list.create_text(680,70 + i * 50, text=str(info_7day_1[i][5]),font=('宋体',15))
-                self.weather_list.create_text(800,70 + i * 50, text=str(info_7day_1[i][6]),font=('宋体',15))        
-        elif info_select_1 == "8-15天":
-            self.weather_list.create_text(80, 20, text='时间/Day', font=('宋体', 15))
-            self.weather_list.create_text(200, 20, text='天气', font=('宋体', 15))
-            self.weather_list.create_text(320, 20, text='最低温度', font=('宋体', 15))
-            self.weather_list.create_text(440, 20, text='最高温度', font=('宋体', 15))
-            self.weather_list.create_text(560, 20, text='风向', font=('宋体', 15))
-            self.weather_list.create_text(750, 20, text='风级', font=('宋体', 15))
-            for i in range(8):
                 self.weather_list.create_text(80,70 + i * 50, text=str(info_15day_1[i][0]),font=('宋体',15))
                 self.weather_list.create_text(200,70 + i * 50, text=str(info_15day_1[i][1]),font=('宋体',15))
                 self.weather_list.create_text(320,70 + i * 50, text=str(info_15day_1[i][2]),font=('宋体',15))
                 self.weather_list.create_text(440,70 + i * 50, text=str(info_15day_1[i][3]),font=('宋体',15))
                 self.weather_list.create_text(560,70 + i * 50, text=str(info_15day_1[i][4]),font=('宋体',15))
-                self.weather_list.create_text(750,70 + i * 50, text=str(info_15day_1[i][5]),font=('宋体',15))
-    
+                self.weather_list.create_text(680,70 + i * 50, text=str(info_15day_1[i][5]),font=('宋体',15))
+                self.weather_list.create_text(800,70 + i * 50, text=str(info_15day_1[i][6]),font=('宋体',15))        
+        elif info_select_1 == "15天":
+            self.weather_list.create_text(80, 20, text='时间/Day', font=('宋体', 15))
+            self.weather_list.create_text(200, 20, text='天气', font=('宋体', 15))
+            self.weather_list.create_text(320, 20, text='最低温度', font=('宋体', 15))
+            self.weather_list.create_text(440, 20, text='最高温度', font=('宋体', 15))
+            self.weather_list.create_text(560, 20, text='风向1', font=('宋体', 15))
+            self.weather_list.create_text(680, 20, text='风向2', font=('宋体', 15))
+            self.weather_list.create_text(800, 20, text='风级', font=('宋体', 15))
+            for i in range(15):
+                self.weather_list.create_text(80,70 + i * 50, text=str(info_15day_1[i][0]),font=('宋体',15))
+                self.weather_list.create_text(200,70 + i * 50, text=str(info_15day_1[i][1]),font=('宋体',15))
+                self.weather_list.create_text(320,70 + i * 50, text=str(info_15day_1[i][2]),font=('宋体',15))
+                self.weather_list.create_text(440,70 + i * 50, text=str(info_15day_1[i][3]),font=('宋体',15))
+                self.weather_list.create_text(560,70 + i * 50, text=str(info_15day_1[i][4]),font=('宋体',15))
+                self.weather_list.create_text(680,70 + i * 50, text=str(info_15day_1[i][5]),font=('宋体',15))
+                self.weather_list.create_text(800,70 + i * 50, text=str(info_15day_1[i][6]),font=('宋体',15))    
 
     def get_weather_info(self):
-        global search_key
         search_key = self.entry.get()
-        info_select = self.time_list.get()
-        photo_select = self.photo_list.get()
         try:
-            global info_1day,info_7day, info_15day
-            info_1day,info_7day, info_15day =html_parser.get_city_all_weather_info(search_key)
-            print(search_key,info_1day,info_7day,info_15day,info_select,photo_select)
-            self.draw_weather_list(search_key,info_1day,info_7day,info_15day,info_select)
-            self.draw_image_select(photo_select,search_key, info_1day, info_7day,info_15day)
+            info_1day, info_15day =html_parser.get_city_all_weather_info(search_key)
+            return search_key, info_1day, info_15day
         except Exception as e:
                 error_message = "无法获取天气数据：" + str(e)
                 messagebox.showerror("错误", error_message)
                 print(error_message)
-                return
-            
-
+                return 
+    
+    def  draw_to_canvas(self):
+        search_key_1,info_1day_1,info_15day_1 = self.get_weather_info()
+        info_select = self.time_list.get()
+        photo_select = self.photo_list.get()
+        self.draw_image_select(photo_select,search_key_1, info_1day_1,info_15day_1)
+        self.draw_weather_list(search_key_1,info_1day_1,info_15day_1,info_select)
         
+    #Generate menus, buttons, and selection boxes
     def draw_menu(self):
         #City search
         city_select= tk.Label(self.screen, text="搜索城市", font=("楷体", 15), width=8, height=1)
@@ -585,7 +683,7 @@ class Outputer(object):
        
         self.entry = tk.Entry(self.screen, font=("楷体", 15))
         self.entry.place(x=150, y=50)
-        button = tk.Button(self.screen, text="确定", font=("楷体", 10), command=self.get_weather_info)
+        button = tk.Button(self.screen, text="确定", font=("楷体", 10), command=self.draw_to_canvas)
         button.place(x=220, y=50)    
         
         #time selection
@@ -610,7 +708,7 @@ class Outputer(object):
         #switch
         ok_label = tk.Label(self.screen, text="数据更新", font=("楷体", 15), width=8, height=1)
         ok_label.place(x=260, y=120)
-        ok = tk.Button(self.screen, text= "确认更新", command=self.get_weather_info, font=("楷体", 15), width=10, height=1)
+        ok = tk.Button(self.screen, text= "确认更新", command=self.draw_to_canvas, font=("楷体", 15), width=10, height=1)
         ok.place(x=347, y=115)
         #function
         menu = tk.Label(self.screen, text="功能按钮", font=("楷体", 15), width=8, height=1)
@@ -620,33 +718,8 @@ class Outputer(object):
         save = tk.Button(self.screen, text= "数据保存", command=self.save_message, font=("楷体", 15), width=10, height=1)
         save.place(x=347, y=185)
         
-
-
-    #Weather list display(text)
-    def draw_weather_text(self):
-        print(self.info_1day)
-        self.weather_1day = tk.Canvas(self.screen, bd=2, bg='white', width=300, height=200)
-        self.weather_1day.place(x=580, y=20)
-        self.frame = tk.Frame(self.screen, width=400, height=350)
-        self.frame.place(x=60, y=225)
-        self.weather_list = tk.Canvas(self.frame, bd=0, bg='white', width=400, height=350, scrollregion=(0, 0, 850, 1500))
-        hbar = tk.Scrollbar(self.frame, orient=tk.HORIZONTAL)
-        hbar.pack(side=tk.BOTTOM, fill=tk.X)
-        hbar.config(command=self.weather_list.xview)
-        vbar = tk.Scrollbar(self.frame, orient=tk.VERTICAL)
-        vbar.pack(side=tk.RIGHT, fill=tk.Y)
-        vbar.config(command=self.weather_list.yview)
-        self.weather_list.config(width=400, height=350)
-        self.weather_list.config(xscrollcommand=hbar.set, yscrollcommand=vbar.set)
-        self.weather_list.pack(side=tk.LEFT, expand=True, fill=tk.BOTH)
-        
-        
-   
-
-
-      
-            #Selective image rendering
-    def draw_image_select(self,photo_select_1,search_key_1, info_1day_1, info_7day_1,info_15day_1):
+    #Selective image rendering
+    def draw_image_select(self,photo_select_1,search_key_1, info_1day_1, info_15day_1):
         global photo_select_list
         if photo_select_1 == photo_select_list[0]:
             self.tem_curve_24(info_1day_1)
@@ -661,60 +734,73 @@ class Outputer(object):
         elif photo_select_1 == photo_select_list[3]:
             self.wind_radar_24(info_1day_1)
         elif photo_select_1 == photo_select_list[4]:
-            self.tem_curve_7(info_7day_1)
+            self.tem_curve_7(info_15day_1)
         elif photo_select_1 == photo_select_list[5]:
-            self.tem_curve_15(info_15day_1,info_7day_1)
+            self. wind_radar_7(info_15day_1)
         elif photo_select_1 == photo_select_list[6]:
-            self. wind_radar_15(info_15day_1)
+            self.weather_pie_7(info_15day_1)
         elif photo_select_1 == photo_select_list[7]:
-            self.weather_pie(info_15day_1)
+            self.tem_curve_15(info_15day_1)
+        elif photo_select_1 == photo_select_list[8]:
+            self. wind_radar_15(info_15day_1)
+        elif photo_select_1 == photo_select_list[9]:
+            self.weather_pie_15(info_15day_1)
 
-     #save data
-
+    #save data
     def save_message(self): 
+        search_key_1,info_1day_1,info_15day_1 = self.get_weather_info()
+        info_select_1 = self.time_list.get()
         now_time = datetime.datetime.now().strftime('%T')
         now_time = now_time.replace(':', '-')
         now_date = datetime.datetime.now().strftime('%F')
         w = Write_to_csv()
-        if info_select == '24h':
-            file_name = search_key +"24小时的天气数据-" + now_date + '-' + now_time + ".csv"
-            w.write_info_to_csv(file_name, info_1day, day=1)
+        if info_select_1 == '24h':
+            file_name = search_key_1 +"24小时的天气数据-" + now_date + '-' + now_time + ".csv"
+            w.write_info_to_csv(file_name, info_1day_1, day=1)
             tk.messagebox.showinfo("提示", "24小时数据保存完成")
+        elif info_select_1 == '7天':
+            file_name = search_key_1 +"7天的天气数据-" + now_date + '-' + now_time + ".csv"
+            w.write_info_to_csv(file_name, info_15day_1[0:7], day=7)
+            tk.messagebox.showinfo("提示", "7天数据保存完成")
         else:
-            file_name = search_key +"15天的天气数据-" + now_date + '-' + now_time + ".csv"
-            w.write_info_to_csv(file_name, info_15day, day=15)
+            file_name = search_key_1 +"15天的天气数据-" + now_date + '-' + now_time + ".csv"
+            w.write_info_to_csv(file_name, info_15day_1, day=15)
             tk.messagebox.showinfo("提示", "15天数据保存完成")
    
-
     #The information is updated automatically every 30 minutes
     def infoGet(self):
-        info_1day, info_7day, info_15day = html_parser.get_city_all_weather_info(search_key)
+        search_key_1,info_1day_1,info_15day_1 = self.get_weather_info()
         self.screen.after(30 * 60 *1000, self.infoGet)
-        self.draw_weather_list()
-        self.draw_image_select()
-        
+        self.draw_to_canvas()
         
     def say_text(self):
-        text_read = search_key + "市" + str(info_15day[0][0]) + "日" + str(info_1day[0][0]) + "时" + "天气" + \
-            info_15day[0][1]
-        if info_15day[0][3] == None:
-            text_read = "最高气温" + "暂无" + "最低气温" + str(info_15day[0][2]) + "度" + "当前温度" + str(info_1day[0][1]) + '度' + \
-                info_1day[0][2] + str(info_1day[0][3]) + "级"
+        search_key_1,info_1day_1,info_15day_1 = self.get_weather_info()
+        text_read = [""] * 6
+        text_read[0] = search_key_1 + "市" 
+        text_read[1] = str(info_15day_1[0][0]) + str(info_1day_1[0][0]) + "时" +","
+        text_read[2] = "天气" + info_15day_1[0][1] + ","
+        if info_15day_1[0][3] == None:
+            text_read[3] = "最高气温" + "暂无" + "，" + "最低气温" + str(info_15day_1[0][2]) + "度" +"，" + "当前温度" + str(info_1day_1[0][1]) + \
+            + "度"  + ","           
         else:
-            text_read = "最高气温" + str(info_15day[0][3]) + "最低气温" + str(info_15day[0][2]) + "度" + "当前温度" + str(info_1day[0][1]) + '度' + \
-                info_1day[0][2] + str(info_1day[0][3]) + "级"
-
-        if info_1day[0][6] == '':
-            text_read = "降水" + str(info_1day[0][4]) +"相对湿度" + str(info_1day[0][5]) + "空气质量" + "暂无"
+            text_read[3] = "最高气温" + str(info_15day_1[0][3]) + "," + "最低气温" + str(info_15day_1[0][2]) + "度" + "，" + "当前温度" + \
+            str(info_1day_1[0][1]) + "度"  + "," 
+        
+        text_read[4] = info_1day_1[0][2] + str(info_1day_1[0][3]) + "级"
+        
+        if info_1day_1[0][6] == '':
+            text_read[5] = "降水" + str(info_1day_1[0][4]) + "," + "相对湿度" + str(info_1day_1[0][5]) + "," + "空气质量" + "暂无"
         else:
-            text_read = "降水" + str(info_1day[0][4]) +"相对湿度" + str(info_1day[0][5]) + "空气质量" + str(info_1day[0][6]) 
-        print(text_read)
+            text_read[5] = "降水" + str(info_1day_1[0][4]) + "," + "相对湿度" + str(info_1day_1[0][5]) + "," + "空气质量" + str(info_1day_1[0][6]) 
+        return text_read
                  
         
     def say_voice(self):
-        self.say_text()
         voice = pyttsx3.init()
-        voice.say(self.say_text)
+        voice.setProperty('rate', 200)
+        text_read_1 = self.say_text()
+        for i in range(6):
+            voice.say(text_read_1[i])
         voice.runAndWait()
         
     #Refresh the interface and draw the elements in the interface
@@ -738,14 +824,7 @@ class Outputer(object):
 #The information is updated automatically every 30 minutes
 #screen.after(30 * 60 * 1000, outputer.infoGet())
 
-
-
-
-
 Outputer()
 
 
-'''canvas_widget = FigureCanvasTkAgg(self.picture, master=self.canvas)
-canvas_widget.draw()
-canvas_widget.get_tk_widget().pack(side=tk.TOP, fill=tk.BOTH, expand=1)'''
 
