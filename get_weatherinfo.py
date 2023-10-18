@@ -9,7 +9,7 @@ import requests
 from bs4 import BeautifulSoup
 import json
 import csv
-
+import re
 
 
 Weather_base_url = "http://www.weather.com.cn/"
@@ -101,7 +101,7 @@ class HtmlParser(object):
                 temp.append(d['od28'])#air quality
                 weather_1d.append(temp)
             count = count + 1
-        print(weather_1d) 
+        #print(weather_1d) 
         return weather_1d
     
     def Parse_html_7d(self, html):
@@ -122,9 +122,14 @@ class HtmlParser(object):
                 temp.append(weather) 
                 
                 tep_low = inf[1].find('i').string #minimum temperature
-                temp.append(tep_low) 
-                tep_high = inf[1].find('span').string #maximum temperature
-                temp.append(tep_high)
+                temp.append(tep_low[:-1]) 
+                if inf[1].find('span') is not None:
+                    tep_high = inf[1].find('span').string
+                    temp.append(tep_high)#maximum temperature
+                else:
+                    tep_high = None
+                    temp.append(tep_high)
+                
                 
                 wind = inf[2].find_all('span') #wind direction
                 i = 0
@@ -132,14 +137,16 @@ class HtmlParser(object):
                     wind_dir = j["title"]
                     temp.append(wind_dir)
                     i = i + 1
+                if i == 1:
+                    temp.append(wind_dir)
 
                 wind_scale = inf[2].find('i').string #wind scale
                 index1 = wind_scale.index('级')
-                temp.append(wind_scale[index1 - 1 : index1 + 1])
+                temp.append(wind_scale[index1 - 1 : index1])
                 
                 weather_7d.append(temp)
             count = count + 1
-        print(weather_7d)
+        #print(weather_7d)
         return weather_7d
     
     def Parse_html_15d(self, html):
@@ -152,7 +159,9 @@ class HtmlParser(object):
         for day in li:
             temp = []
             if count < 8:
-                date = day.find('span', {'class':'time'}).string  #date
+                date_str = day.find('span', {'class':'time'}).string#date
+                date=date_str[date_str.index('（') +1:date_str.index('）')] + '（'  + \
+                     date_str[:date_str.index('（')] + '）'
                 temp.append(date)
                 
                
@@ -161,60 +170,67 @@ class HtmlParser(object):
                 
                 tep = day.find('span', {'class': 'tem'})
                 tep_str = tep.text
-                tep_low =tep_str[-3:]  #minimum temperature
+                index = tep_str.index('/') 
+                tep_low =tep_str[index + 1:-1]  #minimum temperature
                 temp.append(tep_low)
-                tep_high = tep.find('em').string #maximum temperature
+                tep_high = tep_str[:index-1]
                 temp.append(tep_high)
                 
-
-
-
-               
-                
                 wind_dir = day.find('span', {'class' : 'wind'}).string #wind direction
-                temp.append(wind_dir)
+                if '转' in wind_dir:
+                    temp.append(wind_dir[:wind_dir.index('转')])
+                    temp.append(wind_dir[wind_dir.index('转')+1 :])
+                else:
+                    temp.append(wind_dir)
+                    temp.append(wind_dir)
+                    
 
                 wind_scale = day.find('span', {'class' : 'wind1'}).string  #wind scale
                 index1 = wind_scale.index('级')
-                temp.append(wind_scale[index1 - 1 : index1 + 5])
+                temp.append(wind_scale[index1-1 : index1])
                 
                 weather_15d.append(temp)
             count = count + 1
-        print(weather_15d)
+        #print(weather_15d)
         return weather_15d
-        
-
-class Write_to_csv(object):
     
     def get_city_all_weather_info(self, search_key):
-        city_data = Get_city_info.Get_cityID(CityID_base_url)
-        city_ID = Get_city_info().find_value(city_data, search_key)['AREAID']
+        try:
+            city_data = Get_city_info.Get_cityID(CityID_base_url)
+            result = Get_city_info().find_value(city_data, search_key)
+            if result is None:
+                return None
+            city_ID = result['AREAID']
         
-        city_url_1d= Get_city_info().Get_city_url(city_ID, 1)
-        City_html_1d = HtmlCrawler().Crawl_html(city_url_1d)
-        data_1d = HtmlParser().Parse_html_1d(City_html_1d) 
+            city_url_1d= Get_city_info().Get_city_url(city_ID, 1)
+            City_html_1d = HtmlCrawler().Crawl_html(city_url_1d)
+            data_1d = HtmlParser().Parse_html_1d(City_html_1d) 
         
-        city_url_7d= Get_city_info().Get_city_url(city_ID, 7)
-        City_html_7d = HtmlCrawler().Crawl_html(city_url_7d)
-        data_7d = HtmlParser().Parse_html_7d(City_html_7d) 
+            city_url_7d= Get_city_info().Get_city_url(city_ID, 7)
+            City_html_7d = HtmlCrawler().Crawl_html(city_url_7d)
+            data_7d = HtmlParser().Parse_html_7d(City_html_7d) 
         
-        city_url_15d= Get_city_info().Get_city_url(city_ID, 15)
-        City_html_15d = HtmlCrawler().Crawl_html(city_url_15d)
-        data_15d = HtmlParser().Parse_html_15d(City_html_15d)
+            city_url_15d= Get_city_info().Get_city_url(city_ID, 15)
+            City_html_15d = HtmlCrawler().Crawl_html(city_url_15d)
+            data_15d = HtmlParser().Parse_html_15d(City_html_15d)
         
-        return data_1d, data_7d, data_15d
-        
-        
-       
+            return data_1d, data_7d + data_15d
+        except KeyError:
+            return None
     
-    def write_info_to_csv(self, data, day=15):
-            with open(r'.\{}d_info.csv'.format(day), 'w', errors = 'ignore', newline = '') as f:
+    
+    
+class Write_to_csv(object):
+    
+    
+    def write_info_to_csv(self, filename, data, day=15):
+            with open(filename, 'w', errors = 'ignore', newline = '') as f:
                 if(day == 1):
                     header = ['小时', '温度', '风向', '风级', '降水量', '相对湿度', '空气质量']
                 elif(day == 7):
-                    header = ['日期', '天气', '最低气温', '最高气温', '风向1', '风向2', '风级']
+                    header = ['日期', '天气', '最低气温', '最高气温', '风向1', '风向2','风级']
                 elif(day == 15):
-                    header = ['日期', '天气', '最低气温', '最高气温', '风向', '风级']
+                    header = ['日期', '天气', '最低气温', '最高气温', '风向1', '风向2','风级']
                 else:
                     print("error:Failed to write the csv file")
                 
@@ -223,10 +239,12 @@ class Write_to_csv(object):
                 f_csv.writerows(data)
                 
     def write_all_info_to_csvs(self, search_key):
-        data_1d, data_7d, data_15d = Write_to_csv().get_city_all_weather_info(search_key)
-        Write_to_csv().write_info_to_csv(data_1d,1)
-        Write_to_csv().write_info_to_csv(data_7d,7)
-        Write_to_csv().write_info_to_csv(data_15d,15)
+        data = HtmlParser().get_city_all_weather_info(search_key)
+        if data is None:
+            return
+        data_1d, data_15d = data
+        Write_to_csv().write_info_to_csv(r'./1d_info.csv', data_1d, day=1)
+        Write_to_csv().write_info_to_csv(r'./15d_info.csv', data_15d,day=15)
         
             
                 
@@ -238,8 +256,6 @@ class Write_to_csv(object):
             
 
 
-search_key = '晋江'
-Write_to_csv().write_all_info_to_csvs(search_key)
 
 
 
